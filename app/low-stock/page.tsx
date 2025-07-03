@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageLoading, ContentLoading } from '@/components/ui/page-loading';
+import { TableSkeleton } from '@/components/ui/loading-skeleton';
 import { AlertTriangle, Package, Search, RefreshCw, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,18 +26,37 @@ interface LowStockProduct {
 export default function LowStockPage() {
   const [products, setProducts] = useState<LowStockProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchLowStockProducts();
+    const initializePage = async () => {
+      setPageLoading(true);
+      try {
+        await fetchLowStockProducts();
+      } catch (error) {
+        console.error('Error initializing page:', error);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    initializePage();
   }, []);
 
   useEffect(() => {
-    fetchLowStockProducts();
-  }, [searchTerm]);
+    if (!pageLoading) {
+      const timeoutId = setTimeout(() => {
+        fetchLowStockProducts();
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchTerm, pageLoading]);
 
   const fetchLowStockProducts = async () => {
     try {
+      if (!pageLoading) setLoading(true);
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       
@@ -47,12 +68,14 @@ export default function LowStockPage() {
           product.quantity <= product.minQuantity
         );
         setProducts(lowStockProducts);
+      } else {
+        toast.error('Failed to fetch low stock products');
       }
     } catch (error) {
       console.error('Error fetching low stock products:', error);
       toast.error('Failed to fetch low stock products');
     } finally {
-      setLoading(false);
+      if (!pageLoading) setLoading(false);
     }
   };
 
@@ -73,15 +96,20 @@ export default function LowStockPage() {
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
-      case 'Critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'High': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Critical': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700';
+      case 'High': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600';
     }
   };
 
   const outOfStockCount = products.filter(p => p.quantity === 0).length;
   const lowStockCount = products.filter(p => p.quantity > 0 && p.quantity <= p.minQuantity).length;
+
+  // Show page loading spinner
+  if (pageLoading) {
+    return <PageLoading />;
+  }
 
   return (
     <div className="flex-1 overflow-auto">
@@ -90,36 +118,36 @@ export default function LowStockPage() {
       <div className="p-6 space-y-6">
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-l-4 border-l-red-500">
+          <Card className="border-l-4 border-l-red-500 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+              <CardTitle className="text-sm font-medium dark:text-white">Out of Stock</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{outOfStockCount}</div>
-              <p className="text-xs text-gray-600 mt-1">Immediate action required</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Immediate action required</p>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-orange-500">
+          <Card className="border-l-4 border-l-orange-500 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+              <CardTitle className="text-sm font-medium dark:text-white">Low Stock</CardTitle>
               <Package className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{lowStockCount}</div>
-              <p className="text-xs text-gray-600 mt-1">Needs restocking soon</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Needs restocking soon</p>
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-blue-500">
+          <Card className="border-l-4 border-l-blue-500 dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+              <CardTitle className="text-sm font-medium dark:text-white">Total Items</CardTitle>
               <Package className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">{products.length}</div>
-              <p className="text-xs text-gray-600 mt-1">Requiring attention</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Requiring attention</p>
             </CardContent>
           </Card>
         </div>
@@ -127,18 +155,18 @@ export default function LowStockPage() {
         {/* Search and Refresh */}
         <div className="flex flex-col md:flex-row gap-4 justify-between">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Search low stock products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full md:w-64"
+              className="pl-10 w-full md:w-64 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
           </div>
           <Button 
             onClick={fetchLowStockProducts} 
             variant="outline"
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <RefreshCw className="h-4 w-4" />
             <span>Refresh</span>
@@ -147,11 +175,7 @@ export default function LowStockPage() {
 
         {/* Products List */}
         {loading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse" />
-            ))}
-          </div>
+          <ContentLoading title="Low Stock Products" />
         ) : products.length > 0 ? (
           <div className="space-y-4">
             {products
@@ -166,14 +190,14 @@ export default function LowStockPage() {
                 const urgency = getUrgencyLevel(product.quantity, product.minQuantity);
                 
                 return (
-                  <Card key={product._id} className="transition-all hover:shadow-md">
+                  <Card key={product._id} className="transition-all hover:shadow-md dark:bg-gray-800 dark:border-gray-700">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-4">
                             <div className="flex-1">
                               <div className="flex items-center space-x-3 mb-2">
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                                   {product.name}
                                 </h3>
                                 <Badge 
@@ -190,20 +214,20 @@ export default function LowStockPage() {
                               
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                 <div>
-                                  <span className="text-gray-500">SKU:</span>
-                                  <p className="font-medium">{product.sku}</p>
+                                  <span className="text-gray-500 dark:text-gray-400">SKU:</span>
+                                  <p className="font-medium dark:text-white">{product.sku}</p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Category:</span>
-                                  <p className="font-medium">{product.category}</p>
+                                  <span className="text-gray-500 dark:text-gray-400">Category:</span>
+                                  <p className="font-medium dark:text-white">{product.category}</p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Supplier:</span>
-                                  <p className="font-medium">{product.supplier}</p>
+                                  <span className="text-gray-500 dark:text-gray-400">Supplier:</span>
+                                  <p className="font-medium dark:text-white">{product.supplier}</p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">Price:</span>
-                                  <p className="font-medium">${product.price.toFixed(2)}</p>
+                                  <span className="text-gray-500 dark:text-gray-400">Price:</span>
+                                  <p className="font-medium dark:text-white">${product.price.toFixed(2)}</p>
                                 </div>
                               </div>
                             </div>
@@ -212,21 +236,21 @@ export default function LowStockPage() {
                         
                         <div className="flex items-center space-x-6">
                           <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Current Stock</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Stock</div>
                             <div className={`text-2xl font-bold ${stockStatus.color}`}>
                               {product.quantity}
                             </div>
                           </div>
                           
                           <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Min Required</div>
-                            <div className="text-2xl font-bold text-gray-600">
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Min Required</div>
+                            <div className="text-2xl font-bold text-gray-600 dark:text-gray-300">
                               {product.minQuantity}
                             </div>
                           </div>
                           
                           <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Shortage</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Shortage</div>
                             <div className="text-2xl font-bold text-red-600">
                               {Math.max(0, product.minQuantity - product.quantity)}
                             </div>
@@ -235,7 +259,7 @@ export default function LowStockPage() {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="hover:bg-blue-50 hover:text-blue-600"
+                            className="hover:bg-blue-50 hover:text-blue-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-blue-900"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -249,8 +273,8 @@ export default function LowStockPage() {
         ) : (
           <div className="text-center py-16">
             <Package className="h-16 w-16 text-green-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">All stock levels are healthy!</h3>
-            <p className="text-gray-500">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">All stock levels are healthy!</h3>
+            <p className="text-gray-500 dark:text-gray-400">
               {searchTerm 
                 ? 'No low stock products match your search criteria' 
                 : 'All products are currently above their minimum stock levels'

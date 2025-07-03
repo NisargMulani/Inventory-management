@@ -28,7 +28,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
         <CardTitle>Products by Category</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className="h-80 dark:bg-black">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie

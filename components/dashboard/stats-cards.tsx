@@ -45,11 +45,11 @@ export function StatsCards({ stats }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 ">
       {cards.map((card, index) => (
         <Card key={index} className="transition-all hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-white">
               {card.title}
             </CardTitle>
             <div className={`p-2 rounded-lg ${card.bgColor}`}>
@@ -57,7 +57,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</div>
           </CardContent>
         </Card>
       ))}

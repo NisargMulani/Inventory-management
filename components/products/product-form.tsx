@@ -23,6 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, X, Image as ImageIcon, Link, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -35,12 +39,13 @@ const productSchema = z.object({
   price: z.number().min(0, 'Price must be non-negative'),
   cost: z.number().min(0, 'Cost must be non-negative'),
   status: z.enum(['active', 'inactive']),
+  imageUrl: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
-  onSubmit: (data: ProductFormData) => void;
+  onSubmit: (data: ProductFormData & { imageFile?: File }) => void;
   initialData?: Partial<ProductFormData>;
   categories: Array<{ _id: string; name: string }>;
   suppliers: Array<{ _id: string; name: string }>;
@@ -54,6 +59,11 @@ export function ProductForm({
   suppliers,
   isLoading,
 }: ProductFormProps) {
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || '');
+  const [uploadMethod, setUploadMethod] = useState<'upload' | 'url'>('upload');
+
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -67,9 +77,106 @@ export function ProductForm({
       price: 0,
       cost: 0,
       status: 'active',
+      imageUrl: '',
       ...initialData,
     },
   });
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+
+      setImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImagePreview(result);
+        // Clear URL when file is uploaded
+        setImageUrl('');
+        form.setValue('imageUrl', '');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageUrlChange = (url: string) => {
+    setImageUrl(url);
+    form.setValue('imageUrl', url);
+    // Clear file when URL is provided
+    setImageFile(null);
+    
+    if (url) {
+      setImagePreview(url);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    setImageFile(null);
+    setImageUrl('');
+    form.setValue('imageUrl', '');
+    
+    // Reset file input
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const handleFormSubmit = async (data: ProductFormData) => {
+    let finalImageUrl = '';
+
+    // Handle file upload first if there's a file
+    if (imageFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          finalImageUrl = uploadResult.url;
+        } else {
+          toast.error('Failed to upload image');
+          return;
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error('Failed to upload image');
+        return;
+      }
+    } else if (imageUrl) {
+      // Use the provided URL
+      finalImageUrl = imageUrl;
+    }
+
+    // Submit the form data with the final image URL
+    const formData = {
+      ...data,
+      imageUrl: finalImageUrl,
+    };
+    
+    onSubmit(formData);
+  };
 
   return (
     <Card>
@@ -80,7 +187,114 @@ export function ProductForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+            {/* Product Image Section */}
+            <div className="space-y-4">
+              <FormLabel className="text-base font-medium">Product Image</FormLabel>
+              
+              <Tabs value={uploadMethod} onValueChange={(value) => setUploadMethod(value as 'upload' | 'url')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload Image
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="flex items-center gap-2">
+                    <Link className="h-4 w-4" />
+                    Image URL
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="space-y-4">
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <div className="flex flex-col items-center space-y-2">
+                        <Upload className="h-8 w-8 text-gray-400" />
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="font-medium text-blue-600 hover:text-blue-500">
+                            Click to upload
+                          </span>{' '}
+                          or drag and drop
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 5MB
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="url" className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+                      value={imageUrl}
+                      onChange={(e) => handleImageUrlChange(e.target.value)}
+                      className="flex-1"
+                    />
+                    {imageUrl && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setImagePreview(imageUrl)}
+                        title="Preview image"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Provide a direct link to an image file. Make sure the URL is publicly accessible.
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Image Preview */}
+              {imagePreview && (
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <ImageIcon className="h-3 w-3" />
+                      Image Preview
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeImage}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+                  <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-48 object-cover"
+                      onError={() => {
+                        toast.error('Failed to load image. Please check the URL or try a different image.');
+                        setImagePreview(null);
+                      }}
+                    />
+                  </div>
+                  {imageFile && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      File: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}

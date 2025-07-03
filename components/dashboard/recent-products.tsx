@@ -41,11 +41,7 @@ export function RecentProducts({ products }: RecentProductsProps) {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {
-                    product.createdAt && !isNaN(new Date(product.createdAt).getTime())
-                    ? formatDistanceToNow(new Date(product.createdAt), { addSuffix: true })
-                    : 'Unknown'
-                  }
+                 {product.createdAt && (formatDistanceToNow(new Date(product.createdAt), { addSuffix: true }))}
                 </p>
               </div>
             </div>

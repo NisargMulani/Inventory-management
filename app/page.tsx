@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header';
 import { StatsCards } from '@/components/dashboard/stats-cards';
 import { RecentProducts } from '@/components/dashboard/recent-products';
 import { CategoryChart } from '@/components/dashboard/category-chart';
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton';
 
 interface DashboardData {
   totalProducts: number;
@@ -53,17 +54,7 @@ export default function Dashboard() {
       <div className="flex-1 overflow-auto">
         <Header title="Dashboard" description="Overview of your inventory" />
         <div className="p-6">
-          <div className="animate-pulse space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg" />
-              ))}
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="h-80 bg-gray-200 rounded-lg" />
-              <div className="h-80 bg-gray-200 rounded-lg" />
-            </div>
-          </div>
+          <DashboardSkeleton />
         </div>
       </div>
     );
@@ -75,7 +66,7 @@ export default function Dashboard() {
         <Header title="Dashboard" description="Overview of your inventory" />
         <div className="p-6">
           <div className="text-center py-12">
-            <p className="text-gray-500">Failed to load dashboard data</p>
+            <p className="text-gray-500 dark:text-gray-400">Failed to load dashboard data</p>
           </div>
         </div>
       </div>
