@@ -153,7 +153,8 @@ export default function ProductsPage() {
         setEditingProduct(null);
         fetchProducts();
       } else {
-        toast.error('Failed to save product');
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to save product');
       }
     } catch (error) {
       console.error('Error saving product:', error);
@@ -280,41 +281,49 @@ export default function ProductsPage() {
             {products.map((product) => (
               <Card key={product._id} className="transition-all hover:shadow-md dark:bg-gray-800 dark:border-gray-700 group">
                 <CardHeader className="pb-3">
+                  {/* Product Name and SKU */}
+                  <div className="mb-4">
+                    <CardTitle className="text-lg font-semibold dark:text-white mb-1 line-clamp-2">
+                      {product.name}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      SKU: {product.sku}
+                    </p>
+                  </div>
                   
-                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-1
-                    00 dark:bg-gray-700 group">
-                        {/* Buttons only visible on hover */}
-                        <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(product)}
-                            className="dark:text-gray-100 dark:bg-neutral-900 dark:hover:text-white bg-white/80 hover:bg-white p-1 rounded-full"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(product._id)}
-                            className="dark:text-gray-100 dark:bg-neutral-900 dark:hover:text-white bg-white/80 hover:bg-white p-1 rounded-full"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                  {/* Product Image */}
+                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 group">
+                    {/* Buttons only visible on hover */}
+                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(product)}
+                        className="dark:text-gray-100 dark:bg-neutral-900 dark:hover:text-white bg-white/80 hover:bg-white p-1 rounded-full"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(product._id)}
+                        className="dark:text-gray-100 dark:bg-neutral-900 dark:hover:text-white bg-white/80 hover:bg-white p-1 rounded-full"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
 
-                        {/* Product image */}
-                        <img
-                          src={getProductImage(product)}
-                          alt={product.name}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://images.pexels.com/photos/3735747/pexels-photo-3735747.jpeg?auto=compress&cs=tinysrgb&w=300';
-                          }}
-                        />
-                      </div>
-                    
+                    {/* Product image */}
+                    <img
+                      src={getProductImage(product)}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.pexels.com/photos/3735747/pexels-photo-3735747.jpeg?auto=compress&cs=tinysrgb&w=300';
+                      }}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
